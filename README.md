@@ -2,6 +2,10 @@
 
 An AI-powered web tool that analyzes movie reviews and classifies them as **Positive, Negative, or Neutral** using Natural Language Processing.
 
+screenshots
+<img width="1156" height="389" alt="image" src="https://github.com/user-attachments/assets/72dd1595-17dd-4c26-ae66-7ab8057355bf" />
+
+
 ## 🚀 Features
 
 * Sentiment prediction using **Naive Bayes**
