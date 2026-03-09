@@ -1,0 +1,135 @@
+# ===============================
+# Sentiment Analyzer for Movie Reviews
+
+# Install required libraries
+!pip install nltk scikit-learn gradio --quiet
+
+import nltk
+import re
+import string
+import gradio as gr
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.pipeline import Pipeline
+
+# Download NLTK data
+nltk.download('stopwords')
+nltk.download('wordnet')
+
+# ===============================
+# Sample Movie Review Dataset
+# ===============================
+
+reviews = [
+"I absolutely loved this movie. The acting was fantastic.",
+"This film was terrible and boring.",
+"Amazing story and great cinematography!",
+"Worst movie ever made.",
+"It was okay, not the best but not bad.",
+"I really enjoyed the characters.",
+"The plot was dull and predictable.",
+"An excellent masterpiece.",
+"Not good, not bad, just average.",
+"I hated every minute of it."
+]
+
+labels = [
+"positive",
+"negative",
+"positive",
+"negative",
+"neutral",
+"positive",
+"negative",
+"positive",
+"neutral",
+"negative"
+]
+
+# ===============================
+# Text Preprocessing
+# ===============================
+
+stop_words = set(stopwords.words('english'))
+lemmatizer = WordNetLemmatizer()
+
+def preprocess(text):
+
+    text = text.lower()
+    text = re.sub(r"http\S+", "", text)
+    text = text.translate(str.maketrans('', '', string.punctuation))
+
+    words = text.split()
+    words = [lemmatizer.lemmatize(word) for word in words if word not in stop_words]
+
+    return " ".join(words)
+
+reviews_clean = [preprocess(r) for r in reviews]
+
+# ===============================
+# ML Pipeline (TFIDF + Naive Bayes)
+# ===============================
+
+model = Pipeline([
+("vectorizer", TfidfVectorizer()),
+("classifier", MultinomialNB())
+])
+
+model.fit(reviews_clean, labels)
+
+# ===============================
+# Prediction Function
+# ===============================
+
+def analyze_sentiment(review):
+
+    cleaned = preprocess(review)
+
+    prediction = model.predict([cleaned])[0]
+    probabilities = model.predict_proba([cleaned])[0]
+
+    score = {
+        "positive": round(probabilities[list(model.classes_).index("positive")] * 100,2),
+        "negative": round(probabilities[list(model.classes_).index("negative")] * 100,2),
+        "neutral": round(probabilities[list(model.classes_).index("neutral")] * 100,2)
+    }
+
+    return prediction, score
+
+# ===============================
+# Gradio UI
+# ===============================
+
+def ui(review):
+
+    sentiment, scores = analyze_sentiment(review)
+
+    return sentiment, scores
+
+interface = gr.Interface(
+
+    fn=ui,
+
+    inputs=gr.Textbox(
+        lines=4,
+        placeholder="Write a movie review here...",
+        label="🎬 Enter Movie Review"
+    ),
+
+    outputs=[
+        gr.Label(label="Predicted Sentiment"),
+        gr.JSON(label="Sentiment Confidence Scores")
+    ],
+
+    title="🎬 AI Sentiment Analyzer for Movie Reviews",
+
+    description="Enter a movie review and the AI will classify it as Positive, Negative, or Neutral using NLP and Naive Bayes.",
+
+    theme="soft"
+
+)
+
+interface.launch()
